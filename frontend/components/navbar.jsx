@@ -30,6 +30,8 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("user")
+    localStorage.removeItem("authToken")
+    localStorage.removeItem("refreshToken")
     setUser(null)
     window.location.href = "/"
   }

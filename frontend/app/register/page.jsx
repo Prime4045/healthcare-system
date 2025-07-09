@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import Navbar from "@/components/navbar"
 import Breadcrumb from "@/components/breadcrumb"
 import Footer from "@/components/footer"
-import SocialAuthButtons from "@/components/social-auth-buttons"
+import { authAPI } from "@/lib/api"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -37,29 +37,26 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
+      const response = await authAPI.register(formData)
+      
+      if (response.data.success) {
+        const { user, token, refreshToken } = response.data.data
+        
+        // Store auth data
+        localStorage.setItem("user", JSON.stringify(user))
+        localStorage.setItem("authToken", token)
+        localStorage.setItem("refreshToken", refreshToken)
 
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem("user", JSON.stringify(data.user))
-
+        // Redirect based on user type
         if (formData.userType === "patient") {
           router.push("/patient/dashboard")
         } else {
           router.push("/doctor/dashboard")
         }
-      } else {
-        const error = await response.json()
-        alert(error.message || "Registration failed")
       }
     } catch (error) {
-      alert("An error occurred during registration")
+      const message = error.response?.data?.message || "Registration failed"
+      alert(message)
     } finally {
       setIsLoading(false)
     }
@@ -242,7 +239,7 @@ export default function RegisterPage() {
                             value={formData.phone}
                             onChange={handleChange}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                            placeholder="+1 (555) 123-4567"
+                            placeholder="+91 98765 43210"
                             required
                           />
                         </div>
@@ -326,8 +323,6 @@ export default function RegisterPage() {
                         {isLoading ? "Creating Account..." : "Create Account"}
                       </Button>
                     </form>
-
-                    <SocialAuthButtons mode="register" />
 
                     <div className="mt-6 text-center">
                       <p className="text-gray-600">

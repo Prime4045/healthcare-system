@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import Navbar from "@/components/navbar"
 import Breadcrumb from "@/components/breadcrumb"
 import Footer from "@/components/footer"
-import SocialAuthButtons from "@/components/social-auth-buttons"
+import { authAPI } from "@/lib/api"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -25,29 +25,26 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
+      const response = await authAPI.login(formData)
+      
+      if (response.data.success) {
+        const { user, token, refreshToken } = response.data.data
+        
+        // Store auth data
+        localStorage.setItem("user", JSON.stringify(user))
+        localStorage.setItem("authToken", token)
+        localStorage.setItem("refreshToken", refreshToken)
 
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem("user", JSON.stringify(data.user))
-
-        if (data.user.userType === "patient") {
+        // Redirect based on user type
+        if (user.userType === "patient") {
           router.push("/patient/dashboard")
         } else {
           router.push("/doctor/dashboard")
         }
-      } else {
-        const error = await response.json()
-        alert(error.message || "Login failed")
       }
     } catch (error) {
-      alert("An error occurred during login")
+      const message = error.response?.data?.message || "Login failed"
+      alert(message)
     } finally {
       setIsLoading(false)
     }
@@ -134,7 +131,7 @@ export default function LoginPage() {
                           />
                           <span className="ml-2 text-sm text-gray-600">Remember me</span>
                         </label>
-                        <Link href="#" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                        <Link href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
                           Forgot password?
                         </Link>
                       </div>
@@ -147,8 +144,6 @@ export default function LoginPage() {
                         {isLoading ? "Signing in..." : "Sign In"}
                       </Button>
                     </form>
-
-                    <SocialAuthButtons mode="login" />
 
                     <div className="mt-6 text-center">
                       <p className="text-gray-600">
